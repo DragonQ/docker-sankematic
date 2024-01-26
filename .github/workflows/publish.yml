@@ -1,0 +1,83 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# GitHub recommends pinning actions to a commit SHA.
+# To get a newer version, you will need to update the SHA.
+# You can also reference a tag or branch, but the action may change without warning.
+
+name: Publish Docker image
+
+on:
+  push:
+    branches:
+      - main
+      - feature/*
+  workflow_dispatch:
+
+jobs:
+  push_to_registry:
+    name: Push Docker image to Docker Hub
+    runs-on: ubuntu-latest
+    
+    # From: https://stackoverflow.com/questions/58465057/trigger-a-github-action-when-another-repository-creates-a-new-release
+    steps:
+      - name: Get tag for latest release
+        id: get_release
+        run: |
+          # Fetch release information and extract the release tag
+          LATEST_SHA=$(curl -s https://api.github.com/repos/nowthis/sankeymatic/commits/main | jq -r '.sha')
+          echo "release_tag=$LATEST_SHA" >> $GITHUB_OUTPUT
+          echo "latest release: $LATEST_SHA"
+
+      - name: Store latest release tag artifacts
+        run: |
+          # Store the newly fetched release version in a file
+          echo "${{ steps.get_release.outputs.LATEST_SHA }}" > sankeymatic-release-info
+          echo "Saved ${{ steps.get_release.outputs.LATEST_SHA }} to sankeymatic-release-info"
+  
+      - name: Upload tag for latest release in new artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: sankeymatic-release-info
+          path: sankeymatic-release-info
+
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: 'arm64,arm,amd64'
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: bvmensvoort/sankeymatic
+          tags: |
+            type=raw,value=latest,enable=true
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: .
+          build-args: |
+            "LATEST_SHA=${{ steps.get_release.outputs.LATEST_SHA }}"
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm/v7,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
