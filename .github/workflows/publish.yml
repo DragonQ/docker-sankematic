@@ -38,7 +38,7 @@ jobs:
           echo "Saved ${{ steps.get_release.outputs.LATEST_SHA }} to sankeymatic-release-info"
   
       - name: Upload tag for latest release in new artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sankeymatic-release-info
           path: sankeymatic-release-info
@@ -69,7 +69,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
-          images: bvmensvoort/sankeymatic
+          images: ${{ secrets.DOCKER_USERNAME }}/sankeymatic
           tags: |
             type=raw,value=latest,enable=true
       
