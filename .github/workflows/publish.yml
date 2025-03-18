@@ -38,7 +38,7 @@ jobs:
           echo "Saved ${{ steps.get_release.outputs.LATEST_SHA }} to sankeymatic-release-info"
   
       - name: Upload tag for latest release in new artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sankeymatic-release-info
           path: sankeymatic-release-info
