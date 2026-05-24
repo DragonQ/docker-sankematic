@@ -14,7 +14,8 @@ jobs:
     steps:
       - name: Download previous release info
         id: download-artifact
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v21
+        #uses: actions/download-artifact@v4
         with:
           name: sankeymatic-release-info
           workflow_conclusion: success
